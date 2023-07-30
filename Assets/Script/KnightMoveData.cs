@@ -12,9 +12,8 @@ public class KnightMoveData : ScriptableObject
     public float FallGravityMultiplier;
     public float MaxFallSpeed;
     [Space(5)]
-    public float FastFallGravityMultiplier;
+    public float MaxFallGravityMultiplier;
     public float MaxFastFallSpeed;
-
     [Space(20)]
 
     [Header("Run")]
@@ -24,10 +23,10 @@ public class KnightMoveData : ScriptableObject
     public float RunDecceleration;
     [HideInInspector] public float RunDeccelerationAmount;
     [Space(5)]
-    [Range(0f, 1f)] public float AccelerationInAirBorne;
-    [Range(0f, 1f)] public float DeccelerationInAirBorne;
+    [Range(0f, 1f)] public float RunAccelerationInAirBorne;
+    [Range(0f, 1f)] public float RunDeccelerationInAirBorne;
     [Space(5)]
-    public bool DoConserveMomentum = true;
+    public bool DoConseverMomentum = true;
 
     [Space(20)]
 
@@ -36,28 +35,45 @@ public class KnightMoveData : ScriptableObject
     public float JumpTimeToApex;
     [HideInInspector] public float JumpForce;
 
-    [Header("Both Jump")]
+    [Header("BothJump")]
     public float JumpCutGravityMultiplier;
-    [Range(0f, 1f)] public float JumpHangGravityMultiplier;
+    [Range(0f, 1f)] public float JumpHangGraviyMultiplier;
     public float JumpHangTimeThreshold;
-    [Space(0.5f)]
-    public float JumpHangAccelerationMutiplier;
-    public float JumpHangMaxSpeedMutiplier;
+    [Space(5)]
+    public float JumHangAccelerationMultiplier;
+    public float JumHangMaxSpeedMultiplier;
+
+    [Space(20)]
+
+    [Header("WallJump")]
+    public Vector2 WallJumpForce;
+    [Space(5)]
+    [Range(0f, 1f)] public float WallJumpRunLerp;
+    [Range(0f, 1f)] public float WallJumpTime;
+    public bool DoTurnOnWallJump;
 
     [Space(20)]
 
     [Header("Cling")]
-    public float ClingInputBufferTime;
+    public float WallHangingTimeAllowed;
 
     [Space(20)]
+    [Header("Climp")]
+    public float ClimpUpSpeed;
+    public float ClimpDownSpeed;
 
+    [Space(20)]
     [Header("Slide")]
     public float SlideSpeed;
     public float SlideAcceleration;
 
+    [Space(20)]
     [Header("Assists")]
     [Range(0.01f, 0.5f)] public float CoyoteTime;
     [Range(0.01f, 0.5f)] public float JumpInputBufferTime;
+    [Range(0.01f, 0.5f)] public float ClingInputBufferTime;
+    [Range(0.01f, 0.5f)] public float DashInputBufferTime;
+
 
     private void OnValidate()
     {
