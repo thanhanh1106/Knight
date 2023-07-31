@@ -14,6 +14,9 @@ public class KnightMoveData : ScriptableObject
     [Space(5)]
     public float MaxFallGravityMultiplier;
     public float MaxFastFallSpeed;
+    [Space(5)]
+    public float AttackFallGravityMuliplier;
+    public float AttackMaxFallSpeed;
     [Space(20)]
 
     [Header("Run")]
@@ -73,11 +76,16 @@ public class KnightMoveData : ScriptableObject
 
 
     [Space(20)]
+    [Header("Crouch")]
+    [Range(0f, 1f)] public float CrouchRunLerp;
+
+    [Space(20)]
     [Header("Assists")]
     [Range(0.01f, 0.5f)] public float CoyoteTime;
     [Range(0.01f, 0.5f)] public float JumpInputBufferTime;
     [Range(0.01f, 0.5f)] public float RollInputBufferTime;
     [Range(0.01f, 0.5f)] public float AttackInputBufferTime;
+
 
 
     private void OnValidate()

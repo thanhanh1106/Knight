@@ -18,6 +18,7 @@ public class Knight : MonoBehaviour
     [HideInInspector] public bool IsIdle { get; private set; }
     [HideInInspector] public bool IsFalling { get; private set; }
     [HideInInspector] public bool IsAttacking { get; private set; }
+    [HideInInspector] public bool IsCrouching { get; private set; }
     #endregion
 
     #region Time param
@@ -94,8 +95,13 @@ public class Knight : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.LeftShift))
             OnRollInput();
+
+        if(Input.GetKeyDown(KeyCode.C))
+            OnCrouchIput();
+
         if(Input.GetMouseButtonDown(0))
             OnAttackInput();
+
         #endregion
 
         #region Colision Check
@@ -138,9 +144,9 @@ public class Knight : MonoBehaviour
             IsWallJumping = false;
             IsIdle = false;
             IsRuning = false;
+            IsCrouching = false;
             jump = true;
             Jump();
-
         }
         else if (CanWallJump() && LastPressedJumpTime > 0)
         {
@@ -181,6 +187,12 @@ public class Knight : MonoBehaviour
 
         #region Gravity
         if (IsSliding) SetGravityScale(0);
+        else if (IsAttacking && Rb.velocity.y < 0)
+        {
+            SetGravityScale(Data.AttackFallGravityMuliplier);
+            
+            Rb.velocity = new Vector2(Rb.velocity.x, Mathf.Max(Rb.velocity.y, -Data.AttackMaxFallSpeed));
+        }
         // nếu đang rơi người chơi bấm nút xuống
         else if (Rb.velocity.y < 0 && moveInput.y < 0)
         {
@@ -216,7 +228,7 @@ public class Knight : MonoBehaviour
             IsRuning = true;
             IsIdle = false;
         }
-        else if (LastOnGroundTime > 0 && moveInput.x == 0 && !IsSliding && !IsRolling && !IsAttacking)
+        else if (LastOnGroundTime > 0 && moveInput.x == 0 && !IsSliding && !IsRolling && !IsAttacking )
         {
             IsRuning = false;
             IsIdle = true;
@@ -235,23 +247,38 @@ public class Knight : MonoBehaviour
         #endregion
 
         #region Animation Handler
-        if (IsRuning)
-            animationController.ChangeAnimationState("Run");
-        if (IsIdle)
-            animationController.ChangeAnimationState("Idle");
-        if ((IsJumping || IsWallJumping) && !IsAttacking)
-            animationController.ChangeAnimationState("Jump");
-        if (IsFalling)
+        if (IsCrouching)
         {
-            animationController.ChangeAnimationState("Fall");
+            if (IsAttacking)
+                animationController.ChangeAnimationState("CrouchAttack");
+            if(IsRuning)
+                animationController.ChangeAnimationState("CrouchWalk");
+            if(IsIdle)
+                animationController.ChangeAnimationState("Crouch");
         }
-            
-        if (IsSliding)
-            animationController.ChangeAnimationState("WallSlide");
-        if (IsRolling)
-            animationController.ChangeAnimationState("Roll");
-        if (IsAttacking)
-            animationController.ChangeAnimationState("Attack1");
+        else
+        {
+            if (IsRuning)
+                animationController.ChangeAnimationState("Run");
+
+            if (IsIdle)
+                animationController.ChangeAnimationState("Idle");
+
+            if ((IsJumping || IsWallJumping) && !IsAttacking)
+                animationController.ChangeAnimationState("Jump");
+
+            if (IsFalling && !IsAttacking)
+                animationController.ChangeAnimationState("Fall");
+
+            if (IsSliding)
+                animationController.ChangeAnimationState("WallSlide");
+
+            if (IsRolling)
+                animationController.ChangeAnimationState("Roll");
+
+            if (IsAttacking)
+                animationController.ChangeAnimationState("Attack1");
+        }
 
         #endregion
     }
@@ -261,15 +288,18 @@ public class Knight : MonoBehaviour
         {
             if (IsWallJumping)
                 Run(Data.WallJumpRunLerp);
+            else if (IsCrouching)
+                Run(Data.CrouchRunLerp);
             else
                 Run(1);
         }
 
-        //if (jump)
-        //{
+        if (jump)
+        {
+
             
-        //    jump = false;
-        //}
+            jump = false;
+        }
         if (wallJump)
         {
             
@@ -280,8 +310,10 @@ public class Knight : MonoBehaviour
     #region Control method
     void Run(float LerpAmout)
     {
+        
         float targetSpeed = moveInput.x * Data.RunMaxSpeed;
         targetSpeed = Mathf.Lerp(Rb.velocity.x, targetSpeed, LerpAmout);
+        Debug.Log(targetSpeed + " ABC");
 
         float acceleration;
         if (LastOnGroundTime > 0)
@@ -300,6 +332,7 @@ public class Knight : MonoBehaviour
 
         float speedDifferent = targetSpeed - Rb.velocity.x;
         float movemet = speedDifferent * acceleration;
+        Debug.Log(movemet + "MOVEMENT");
         Rb.AddForce(movemet * Vector2.right, ForceMode2D.Force);
     }
 
@@ -378,7 +411,7 @@ public class Knight : MonoBehaviour
         float startTime = Time.time;
         while( Time.time - startTime < 0.4f)
         {
-            Rb.velocity = Vector2.zero;
+            Rb.velocity = new Vector2(0,Rb.velocity.y);
             yield return null;
         }
         IsAttacking = false;
@@ -403,6 +436,10 @@ public class Knight : MonoBehaviour
     void OnAttackInput()
     {
         LastPressedAttackTime = Data.AttackInputBufferTime;
+    }
+    void OnCrouchIput()
+    {
+        IsCrouching = !IsCrouching;
     }
     #endregion
 

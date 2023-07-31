@@ -18,6 +18,8 @@ MonoBehaviour:
   MaxFallSpeed: 25
   MaxFallGravityMultiplier: 5
   MaxFastFallSpeed: 30
+  AttackFallGravityMuliplier: 2.5
+  AttackMaxFallSpeed: 5
   RunMaxSpeed: 11
   RunAcceleration: 2.5
   RunAccelerationAmount: 11.363636
@@ -48,6 +50,7 @@ MonoBehaviour:
   RollStartSpeed: 12
   RollMiddleSpeed: 15
   RollEndSpeed: 9
+  CrouchRunLerp: 0.4
   CoyoteTime: 0.1
   JumpInputBufferTime: 0.103
   RollInputBufferTime: 0.1
