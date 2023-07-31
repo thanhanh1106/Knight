@@ -53,26 +53,31 @@ public class KnightMoveData : ScriptableObject
     public bool DoTurnOnWallJump;
 
     [Space(20)]
-
-    [Header("Cling")]
-    public float WallHangingTimeAllowed;
-
-    [Space(20)]
-    [Header("Climp")]
-    public float ClimpUpSpeed;
-    public float ClimpDownSpeed;
-
-    [Space(20)]
     [Header("Slide")]
     public float SlideSpeed;
     public float SlideAcceleration;
 
     [Space(20)]
+    [Header("Roll")]
+    [SerializeField] float RollTime;
+    [HideInInspector] public float RollStartTime;
+    [HideInInspector] public float RollMiddleTime;
+    [HideInInspector] public float RollEndTime;
+    [SerializeField] float RollSpeed;
+    [HideInInspector] public float RollStartSpeed;
+    [HideInInspector] public float RollMiddleSpeed;
+    [HideInInspector] public float RollEndSpeed;
+
+    [Space(20)]
+    [Header("Attack")]
+
+
+    [Space(20)]
     [Header("Assists")]
     [Range(0.01f, 0.5f)] public float CoyoteTime;
     [Range(0.01f, 0.5f)] public float JumpInputBufferTime;
-    [Range(0.01f, 0.5f)] public float ClingInputBufferTime;
-    [Range(0.01f, 0.5f)] public float DashInputBufferTime;
+    [Range(0.01f, 0.5f)] public float RollInputBufferTime;
+    [Range(0.01f, 0.5f)] public float AttackInputBufferTime;
 
 
     private void OnValidate()
@@ -93,5 +98,13 @@ public class KnightMoveData : ScriptableObject
 
         RunAcceleration = Mathf.Clamp(RunAcceleration, 0.01f, RunMaxSpeed);
         RunDecceleration = Mathf.Clamp(RunDecceleration, 0.01f, RunMaxSpeed);
+
+        RollStartTime = RollTime * 0.2f;
+        RollMiddleTime = RollTime * 0.5f;
+        RollEndTime = RollTime * 0.3f;
+
+        RollStartSpeed = RollSpeed * 0.8f;
+        RollMiddleSpeed = RollSpeed;
+        RollEndSpeed = RollSpeed * 0.6f;
     }
 }

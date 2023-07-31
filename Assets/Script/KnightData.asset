@@ -38,12 +38,17 @@ MonoBehaviour:
   WallJumpRunLerp: 0.5
   WallJumpTime: 0.154
   DoTurnOnWallJump: 0
-  WallHangingTimeAllowed: 5
-  ClimpUpSpeed: 2.5
-  ClimpDownSpeed: 3
-  SlideSpeed: -4
+  SlideSpeed: -6
   SlideAcceleration: 1
+  RollTime: 0.5
+  RollStartTime: 0.1
+  RollMiddleTime: 0.25
+  RollEndTime: 0.15
+  RollSpeed: 15
+  RollStartSpeed: 12
+  RollMiddleSpeed: 15
+  RollEndSpeed: 9
   CoyoteTime: 0.1
-  JumpInputBufferTime: 0.01
-  ClingInputBufferTime: 0.107
-  DashInputBufferTime: 0.1
+  JumpInputBufferTime: 0.103
+  RollInputBufferTime: 0.1
+  AttackInputBufferTime: 0.103

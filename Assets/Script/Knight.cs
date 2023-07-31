@@ -12,13 +12,12 @@ public class Knight : MonoBehaviour
     [HideInInspector] public bool IsFacingRight { get; private set; }
     [HideInInspector] public bool IsJumping { get; set; }
     [HideInInspector] public bool IsWallJumping { get; set; }
-    [HideInInspector] public bool IsClinging { get; private set; }
-    [HideInInspector] public bool IsClimping { get; private set; }
     [HideInInspector] public bool IsSliding { get; private set; }
     [HideInInspector] public bool IsRuning { get; private set; }
+    [HideInInspector] public bool IsRolling { get; private set; } 
     [HideInInspector] public bool IsIdle { get; private set; }
     [HideInInspector] public bool IsFalling { get; private set; }
-    [HideInInspector] public bool IsStillStrength => WallHangingTime <= Data.WallHangingTimeAllowed;
+    [HideInInspector] public bool IsAttacking { get; private set; }
     #endregion
 
     #region Time param
@@ -38,7 +37,8 @@ public class Knight : MonoBehaviour
     Vector2 moveInput;
 
     public float LastPressedJumpTime { get; private set; }
-    public float LastPressedClingingTime { get; private set; }
+    public float LastPressedRollTime { get; private set; }
+    public float LastPressedAttackTime { get; private set; }
     #endregion
 
     #region Check parameter
@@ -75,14 +75,15 @@ public class Knight : MonoBehaviour
         LastOnWallTime -= Time.deltaTime;
 
         LastPressedJumpTime -= Time.deltaTime;
-        LastPressedClingingTime -= Time.deltaTime;
+        LastPressedRollTime -= Time.deltaTime;
+        LastPressedAttackTime -= Time.deltaTime;
         #endregion
 
         #region input Handler
         moveInput.x = Input.GetAxisRaw("Horizontal");
         moveInput.y = Input.GetAxisRaw("Vertical");
 
-        if (moveInput.x != 0)
+        if (moveInput.x != 0 && CanTurnArround())
             TurnAround(moveInput.x);
 
         if (Input.GetKeyDown(KeyCode.Space))
@@ -91,8 +92,10 @@ public class Knight : MonoBehaviour
         if (Input.GetKeyUp(KeyCode.Space))
             OnJumpUpInput();
 
-        if (Input.GetKey(KeyCode.L)) 
-            OnClingInput();
+        if (Input.GetKeyDown(KeyCode.LeftShift))
+            OnRollInput();
+        if(Input.GetMouseButtonDown(0))
+            OnAttackInput();
         #endregion
 
         #region Colision Check
@@ -116,7 +119,7 @@ public class Knight : MonoBehaviour
             isJumpFalling = true;
         }
 
-        if (IsClinging || IsSliding) IsJumping = false;
+        if (IsSliding) IsJumping = false;
 
         if (LastOnGroundTime > 0 && !IsJumping && !IsWallJumping)
         {
@@ -147,7 +150,7 @@ public class Knight : MonoBehaviour
             isJumpFalling = false;
 
             wallJumpStartTime = Time.time;
-            wallJump = true;
+            WallJump();
         }
         #endregion
 
@@ -155,27 +158,29 @@ public class Knight : MonoBehaviour
         IsSliding = moveInput.x != 0 && CanSlide();
         #endregion
 
-        #region Cling check
-        if (CanCling() && LastPressedClingingTime > 0)
+        #region Roll check
+        if(LastPressedRollTime > 0 && CanRoll())
         {
-            IsClinging = true;
-            Cling();
-        }
-        else
-        {
-            IsClinging = false;
+            Vector2 direction = IsFacingRight ? Vector2.right : Vector2.left;
+            IsRolling = true;
+            IsJumping = false;
+            isJumpCut = false;
+            IsWallJumping = false;
+            StartCoroutine(Roll(direction));
         }
         #endregion
 
-        #region Climb check
-        if (CanClimb() && moveInput.y != 0)
-            IsClimping = true;
-        else
-            IsClimping = false;
+        #region Attack Check
+        if(LastPressedAttackTime > 0 && CanAttack())
+        {
+            IsAttacking = true;
+            StartCoroutine(Attack());
+
+        }
         #endregion
 
         #region Gravity
-        if (IsClinging || IsSliding) SetGravityScale(0);
+        if (IsSliding) SetGravityScale(0);
         // nếu đang rơi người chơi bấm nút xuống
         else if (Rb.velocity.y < 0 && moveInput.y < 0)
         {
@@ -206,12 +211,12 @@ public class Knight : MonoBehaviour
         #endregion
 
         #region Check state
-        if (LastOnGroundTime > 0 && moveInput.x != 0 && !IsSliding)
+        if (LastOnGroundTime > 0 && moveInput.x != 0 && !IsSliding && !IsRolling && !IsAttacking)
         {
             IsRuning = true;
             IsIdle = false;
         }
-        else if (LastOnGroundTime > 0 && moveInput.x == 0 && !IsSliding)
+        else if (LastOnGroundTime > 0 && moveInput.x == 0 && !IsSliding && !IsRolling && !IsAttacking)
         {
             IsRuning = false;
             IsIdle = true;
@@ -222,7 +227,7 @@ public class Knight : MonoBehaviour
             IsIdle = false;
         }
 
-        if (LastOnGroundTime < 0 && Rb.velocity.y < 0 && !IsSliding && !IsClimping)
+        if (LastOnGroundTime < 0 && Rb.velocity.y < 0 && !IsSliding)
         {
             IsFalling = true;
         }
@@ -234,41 +239,43 @@ public class Knight : MonoBehaviour
             animationController.ChangeAnimationState("Run");
         if (IsIdle)
             animationController.ChangeAnimationState("Idle");
-        if (IsJumping)
+        if ((IsJumping || IsWallJumping) && !IsAttacking)
             animationController.ChangeAnimationState("Jump");
         if (IsFalling)
         {
-            animationController.ChangeAnimationState("JumFallInBetween");
-            Invoke("FallAnimation",0.1f);
+            animationController.ChangeAnimationState("Fall");
         }
             
-        if (IsClinging && !IsClimping)
-            animationController.ChangeAnimationState("WallHang");
         if (IsSliding)
             animationController.ChangeAnimationState("WallSlide");
-        if (IsClinging && IsClimping)
-            animationController.ChangeAnimationState("WallClimb");
+        if (IsRolling)
+            animationController.ChangeAnimationState("Roll");
+        if (IsAttacking)
+            animationController.ChangeAnimationState("Attack1");
 
         #endregion
     }
     private void FixedUpdate()
     {
-        if (IsWallJumping)
-            Run(Data.WallJumpRunLerp);
-        else
-            Run(1);
-        if (jump)
+        if (!IsRolling)
         {
-            
-            jump = false;
+            if (IsWallJumping)
+                Run(Data.WallJumpRunLerp);
+            else
+                Run(1);
         }
+
+        //if (jump)
+        //{
+            
+        //    jump = false;
+        //}
         if (wallJump)
         {
-            WallJump();
+            
             wallJump = false;
         }
         if (IsSliding) Slide();
-        if (IsClimping) Climb();
     }
     #region Control method
     void Run(float LerpAmout)
@@ -339,30 +346,43 @@ public class Knight : MonoBehaviour
         Rb.AddForce(movemet * Vector2.up, ForceMode2D.Force);
     }
 
-    void Cling()
+    IEnumerator Roll(Vector2 diretion)
     {
-        if (!IsClimping)
+        LastPressedRollTime = 0;
+        float startTime = Time.time;
+
+        diretion.Normalize();
+        while(Time.time - startTime < Data.RollStartTime)
         {
-            Rb.velocity = new Vector2(Rb.velocity.x, 0);
+            Rb.velocity = diretion*Data.RollStartSpeed;
+            yield return null;
         }
-        WallHangingTime += Time.deltaTime;
-    }
+        startTime = Time.time;
+        while(Time.time - startTime < Data.RollMiddleTime)
+        {
+            Rb.velocity = diretion *Data.RollMiddleSpeed;
+            yield return null;
+        }
+        startTime = Time.time;
+        while (Time.time - startTime < Data.RollEndTime)
+        {
+            Rb.velocity = diretion * Data.RollEndSpeed;
+            yield return null;
+        }
 
-    void Climb()
+        IsRolling = false;
+    }
+    IEnumerator Attack()
     {
-        float targetSpeed;
-        if (moveInput.y > 0)
-            targetSpeed = moveInput.y * Data.ClimpUpSpeed;
-        else if (moveInput.y < 0)
-            targetSpeed = moveInput.y * Data.ClimpDownSpeed;
-        else
-            targetSpeed = 0;
-
-        float speedDifferent = targetSpeed - Rb.velocity.y;
-        float movement = speedDifferent * 1 / Time.fixedDeltaTime;
-        Rb.AddForce(movement * Vector2.up, ForceMode2D.Force);
+        LastPressedAttackTime = 0;
+        float startTime = Time.time;
+        while( Time.time - startTime < 0.4f)
+        {
+            Rb.velocity = Vector2.zero;
+            yield return null;
+        }
+        IsAttacking = false;
     }
-
     #endregion
 
     #region input Call
@@ -371,14 +391,18 @@ public class Knight : MonoBehaviour
         // khi nhấn nhảy thì cài lại LastPressedJumpTime > 0 => thỏa mãn 1 điều kiện để nhảy
         LastPressedJumpTime = Data.JumpInputBufferTime;
     }
-    public void OnJumpUpInput()
+    void OnJumpUpInput()
     {
         if (CanJumpCut() || CanWallJumCut()) 
             isJumpCut = true;
     }
-    public void OnClingInput()
+    void OnRollInput()
     {
-        LastPressedClingingTime = Data.ClingInputBufferTime;
+        LastPressedRollTime = Data.RollInputBufferTime;
+    }
+    void OnAttackInput()
+    {
+        LastPressedAttackTime = Data.AttackInputBufferTime;
     }
     #endregion
 
@@ -393,7 +417,7 @@ public class Knight : MonoBehaviour
     }
     bool CanWallJump()
     {
-        return LastOnWallTime > 0 && !IsWallJumping && LastOnGroundTime < 0 && IsStillStrength;
+        return LastOnWallTime > 0 && !IsWallJumping && LastOnGroundTime < 0 ;
     }
     bool CanWallJumCut()
     {
@@ -401,15 +425,20 @@ public class Knight : MonoBehaviour
     }
     bool CanSlide()
     {
-        return LastOnGroundTime < 0 && LastOnWallTime > 0 && !IsClinging;
+        return LastOnGroundTime < 0 && LastOnWallTime > 0;
     }
-    bool CanCling()
+    bool CanRoll()
     {
-        return LastOnGroundTime <= 0 && LastOnWallTime > 0 && IsStillStrength && !IsWallJumping;
+        return LastOnGroundTime > 0 && !IsRolling;
     }
-    bool CanClimb()
+
+    bool CanAttack()
     {
-        return LastOnWallTime > 0 && !IsJumping && IsClinging;
+        return !IsAttacking && !IsSliding && !IsRolling;
+    }
+    bool CanTurnArround()
+    {
+        return !IsAttacking;
     }
     #endregion
     void SetGravityScale(float Scale)
@@ -421,10 +450,6 @@ public class Knight : MonoBehaviour
         float eulerAnglesY = xDirectionMove > 0 ? 0 : 180;
         IsFacingRight = xDirectionMove > 0;
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, eulerAnglesY, transform.eulerAngles.z);
-    }
-    void FallAnimation()
-    {
-        animationController.ChangeAnimationState("Fall");
     }
     private void OnDrawGizmos()
     {

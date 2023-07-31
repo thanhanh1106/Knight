@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ebdcf296c95d67844963dd148a8bdecc
+guid: be31a4c2adead254698109e251deb787
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -131,64 +131,64 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: _WallSlide_0
+      name: _WallSlide 1_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
         width: 120
         height: 80
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.58, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d565b29bb3040ea48bbe2ea66b55ac5c
-      internalID: 565170316
+      spriteID: 1f286959545feaf4687c21711a79bc4f
+      internalID: -1949464537
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: _WallSlide_1
+      name: _WallSlide 1_1
       rect:
         serializedVersion: 2
         x: 120
         y: 0
         width: 120
         height: 80
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.58, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6e2079b6bacb9994fb491784098e017b
-      internalID: -964305674
+      spriteID: ad26b77d888365e4b815339133964cc3
+      internalID: -1659578314
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: _WallSlide_2
+      name: _WallSlide 1_2
       rect:
         serializedVersion: 2
         x: 240
         y: 0
         width: 120
         height: 80
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.58, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       outline: []
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ea1e07f595f91764ea7dcef7c2d5298d
-      internalID: -1890196699
+      spriteID: 74dcd62f1b37b1c4aa997d3efda1fe98
+      internalID: -1718453065
       vertices: []
       indices: 
       edges: []
@@ -204,9 +204,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      _WallSlide_0: 565170316
-      _WallSlide_1: -964305674
-      _WallSlide_2: -1890196699
+      _WallSlide 1_0: -1949464537
+      _WallSlide 1_1: -1659578314
+      _WallSlide 1_2: -1718453065
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
