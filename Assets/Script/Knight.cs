@@ -8,7 +8,7 @@ public class Knight : MonoBehaviour
     public Rigidbody2D Rb;
 
     #region state param
-    [HideInInspector] public bool IsDie { get; private set; }
+    [HideInInspector] public bool IsDie => CurrentHeath <= 0;
     [HideInInspector] public bool IsFacingRight { get; private set; }
     [HideInInspector] public bool IsJumping { get; set; }
     [HideInInspector] public bool IsWallJumping { get; set; }
@@ -40,6 +40,12 @@ public class Knight : MonoBehaviour
     public float LastPressedJumpTime { get; private set; }
     public float LastPressedRollTime { get; private set; }
     public float LastPressedAttackTime { get; private set; }
+    #endregion
+
+    #region Attack Param
+    public float Damage;
+    public float Heath;
+    float CurrentHeath;
     #endregion
 
     #region Check parameter
@@ -332,7 +338,6 @@ public class Knight : MonoBehaviour
 
         float speedDifferent = targetSpeed - Rb.velocity.x;
         float movemet = speedDifferent * acceleration;
-        Debug.Log(movemet + "MOVEMENT");
         Rb.AddForce(movemet * Vector2.right, ForceMode2D.Force);
     }
 
@@ -487,6 +492,11 @@ public class Knight : MonoBehaviour
         float eulerAnglesY = xDirectionMove > 0 ? 0 : 180;
         IsFacingRight = xDirectionMove > 0;
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, eulerAnglesY, transform.eulerAngles.z);
+    }
+
+    public void TakeDame(float damage)
+    {
+        CurrentHeath -= damage;
     }
     private void OnDrawGizmos()
     {
