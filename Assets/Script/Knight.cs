@@ -74,6 +74,7 @@ public class Knight : MonoBehaviour
     {
         SetGravityScale(Data.GravityScale);
         IsFacingRight = true;
+        CurrentHeath = Heath;
     }
     private void Update()
     {
@@ -298,13 +299,6 @@ public class Knight : MonoBehaviour
                 Run(Data.CrouchRunLerp);
             else
                 Run(1);
-        }
-
-        if (jump)
-        {
-
-            
-            jump = false;
         }
         if (wallJump)
         {
