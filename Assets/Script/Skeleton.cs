@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public class Skeleton : MonoBehaviour
+public class Skeleton : MonoBehaviour,IDamageable
 {
     Rigidbody2D rb;
     Animator animator;
@@ -44,6 +44,7 @@ public class Skeleton : MonoBehaviour
     float restTime = 1.5f;
 
     #region Check Param
+    bool isFacingRight;
     bool isOnGround;
     bool isOnFollow;
     bool inAttackRage;
@@ -53,6 +54,7 @@ public class Skeleton : MonoBehaviour
     bool isStandRest;
     bool isWalking;
     bool isAttacking;
+    bool isStunding;
     #endregion
 
     public bool IsDie => currentHeath <= 0;
@@ -73,6 +75,7 @@ public class Skeleton : MonoBehaviour
     private void Start()
     {
         currentHeath = Heath;
+        isFacingRight = true;
 
         #region Set point
         // bắn raycast để xác định đúng position của mặt đất
@@ -104,7 +107,7 @@ public class Skeleton : MonoBehaviour
 
         #region
         currentPositionOnGround = new Vector2(transform.position.x, currentPoint.y);
-        if (isOnGround && !IsDie)
+        if (isOnGround && !IsDie && !isStunding)
         {
             if (!isOnFollow)
             {
@@ -166,16 +169,23 @@ public class Skeleton : MonoBehaviour
                 }
 
             }
+            if (isWalking)
+            {
+                if (rb.velocity.x < 0.1f)
+                    isFacingRight = false;
+                else if (rb.velocity.x > 0.1f)
+                    isFacingRight = true;
+            }
             // xoay người   
             if (isWalking && !isAttacking)
                 TurnAround();
+        }
 
-            if (IsDie)
-            {
-                isWalking = false;
-                isAttacking = false;
-                animator.SetTrigger("Dead");
-            }
+        if (IsDie)
+        {
+            isWalking = false;
+            isAttacking = false;
+            
         }
         #endregion
     }
@@ -187,15 +197,26 @@ public class Skeleton : MonoBehaviour
 
     void TurnAround()
     {
+        float eulerAnglesY = isFacingRight ? 0 : 180;
         transform.eulerAngles = new Vector3(transform.eulerAngles.x,
-                    rb.velocity.x < 0 ? 180 : 0, transform.eulerAngles.z);
+                    eulerAnglesY, transform.eulerAngles.z);
     }
     void Walk()
     {
         rb.velocity = direction * MoveSpeed;
     }
+    public void TakeDame(float damage)
+    {
+        currentHeath -= damage;
+        isStunding = true;
+        isAttacking = false;
+        if (!IsDie)
+            animator.SetTrigger("Hit");
+        else
+            animator.SetTrigger("Dead");
+    }
 
-    #region Attack
+    #region method gọi trong animation event
     void Attacking()
     {
         List<Collider2D> hits = new List<Collider2D>();
@@ -203,7 +224,7 @@ public class Skeleton : MonoBehaviour
 
         if(hitsLength > 0 && hits[0].CompareTag("Player"))
         {
-            hits[0].GetComponent<Knight>().TakeDame(Damage);
+            hits[0].GetComponent<IDamageable>().TakeDame(Damage);
         }
     }
     void EndAttacking()
@@ -211,13 +232,13 @@ public class Skeleton : MonoBehaviour
         if (isAttacking)
             isAttacking = false;
     }
-    #endregion
 
-    public void TakeDamage(float damage)
+    void OnEndStun()
     {
-        currentHeath -= damage;
-        animator.SetTrigger("Hit");
+        isStunding = false;
     }
+    
+    #endregion
     void Die()
     {
         Destroy(gameObject);

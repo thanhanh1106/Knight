@@ -73,7 +73,9 @@ public class KnightMoveData : ScriptableObject
 
     [Space(20)]
     [Header("Attack")]
-
+    public float Damage;
+    public float Heath;
+    public float AttackTimeCombo;
 
     [Space(20)]
     [Header("Crouch")]

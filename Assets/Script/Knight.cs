@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
-public class Knight : MonoBehaviour
+public class Knight : MonoBehaviour,IDamageable
 {
     public KnightMoveData Data;
     public Rigidbody2D Rb;
@@ -17,8 +18,9 @@ public class Knight : MonoBehaviour
     [HideInInspector] public bool IsRolling { get; private set; } 
     [HideInInspector] public bool IsIdle { get; private set; }
     [HideInInspector] public bool IsFalling { get; private set; }
-    [HideInInspector] public bool IsAttacking { get; private set; }
+    [HideInInspector] public bool IsAttacking { get;private set; }
     [HideInInspector] public bool IsCrouching { get; private set; }
+    [HideInInspector] public bool IsStun { get;private set; }
     #endregion
 
     #region Time param
@@ -29,7 +31,6 @@ public class Knight : MonoBehaviour
 
     bool isJumpCut;
     bool isJumpFalling;
-    bool jump;
     bool wallJump;
 
     float wallJumpStartTime;
@@ -43,9 +44,13 @@ public class Knight : MonoBehaviour
     #endregion
 
     #region Attack Param
-    public float Damage;
-    public float Heath;
+    [SerializeField] KnightAttackData[] AttackDatas;
     float CurrentHeath;
+    int currentAttackIndex;
+    Collider2D currentAttackCollider;
+    float lastAttackTime;
+    float currentDamage;
+    string currentAttackAnimation;
     #endregion
 
     #region Check parameter
@@ -57,24 +62,28 @@ public class Knight : MonoBehaviour
     [SerializeField] Vector2 wallCheckSize;
     #endregion
 
+    [Space(5)]
     #region Layer and Tag
     [SerializeField] LayerMask GroudLayer;
+    [SerializeField] LayerMask enemyLayer;
+    ContactFilter2D enemyContactFilter;
     #endregion
 
-    AnimationController animationController;
     Animator animator;
 
     private void Awake()
     {
         Rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        animationController = new AnimationController(animator);
+        enemyContactFilter = new ContactFilter2D();
+        enemyContactFilter.SetLayerMask(enemyLayer);
     }
     private void Start()
     {
         SetGravityScale(Data.GravityScale);
         IsFacingRight = true;
-        CurrentHeath = Heath;
+        CurrentHeath = Data.Heath;
+        lastAttackTime = Time.time;
     }
     private void Update()
     {
@@ -126,7 +135,7 @@ public class Knight : MonoBehaviour
         #endregion
 
         #region Jump Check
-        if (Rb.velocity.y <= 0 && IsJumping)
+        if (Rb.velocity.y <= 0 && IsJumping && !IsSliding)
         {
             IsJumping = false;
             isJumpFalling = true;
@@ -152,7 +161,6 @@ public class Knight : MonoBehaviour
             IsIdle = false;
             IsRuning = false;
             IsCrouching = false;
-            jump = true;
             Jump();
         }
         else if (CanWallJump() && LastPressedJumpTime > 0)
@@ -179,6 +187,7 @@ public class Knight : MonoBehaviour
             IsJumping = false;
             isJumpCut = false;
             IsWallJumping = false;
+            animator.SetTrigger("Roll");
             StartCoroutine(Roll(direction));
         }
         #endregion
@@ -187,8 +196,11 @@ public class Knight : MonoBehaviour
         if(LastPressedAttackTime > 0 && CanAttack())
         {
             IsAttacking = true;
-            StartCoroutine(Attack());
-
+            Attack(); 
+        }
+        if (IsAttacking)
+        {
+            Rb.velocity = Vector2.zero;
         }
         #endregion
 
@@ -254,51 +266,28 @@ public class Knight : MonoBehaviour
         #endregion
 
         #region Animation Handler
-        if (IsCrouching)
+        animator.SetBool("Run", IsRuning);
+        animator.SetBool("Jump", IsJumping);
+        if (!IsAttacking)
         {
-            if (IsAttacking)
-                animationController.ChangeAnimationState("CrouchAttack");
-            if(IsRuning)
-                animationController.ChangeAnimationState("CrouchWalk");
-            if(IsIdle)
-                animationController.ChangeAnimationState("Crouch");
+            animator.SetBool("Fall", IsFalling);
         }
-        else
-        {
-            if (IsRuning)
-                animationController.ChangeAnimationState("Run");
-
-            if (IsIdle)
-                animationController.ChangeAnimationState("Idle");
-
-            if ((IsJumping || IsWallJumping) && !IsAttacking)
-                animationController.ChangeAnimationState("Jump");
-
-            if (IsFalling && !IsAttacking)
-                animationController.ChangeAnimationState("Fall");
-
-            if (IsSliding)
-                animationController.ChangeAnimationState("WallSlide");
-
-            if (IsRolling)
-                animationController.ChangeAnimationState("Roll");
-
-            if (IsAttacking)
-                animationController.ChangeAnimationState("Attack1");
-        }
-
+        animator.SetBool("WallSlide", IsSliding);
+        animator.SetBool("WallJump", IsWallJumping);
+        animator.SetBool("Crouch", IsCrouching);
         #endregion
     }
     private void FixedUpdate()
     {
-        if (!IsRolling)
+        if (!IsRolling && !IsAttacking && !IsStun)
         {
+            Debug.Log("runing");
             if (IsWallJumping)
-                Run(Data.WallJumpRunLerp);
+                Run(Data.WallJumpRunLerp,1);
             else if (IsCrouching)
-                Run(Data.CrouchRunLerp);
+                Run(1,Data.CrouchRunLerp);
             else
-                Run(1);
+                Run(1,1);
         }
         if (wallJump)
         {
@@ -308,12 +297,12 @@ public class Knight : MonoBehaviour
         if (IsSliding) Slide();
     }
     #region Control method
-    void Run(float LerpAmout)
+    void Run(float LerpAmout,float ratioSpeed)
     {
         
         float targetSpeed = moveInput.x * Data.RunMaxSpeed;
+        targetSpeed *= ratioSpeed;
         targetSpeed = Mathf.Lerp(Rb.velocity.x, targetSpeed, LerpAmout);
-        Debug.Log(targetSpeed + " ABC");
 
         float acceleration;
         if (LastOnGroundTime > 0)
@@ -404,16 +393,59 @@ public class Knight : MonoBehaviour
 
         IsRolling = false;
     }
-    IEnumerator Attack()
+    void Attack()
     {
-        LastPressedAttackTime = 0;
-        float startTime = Time.time;
-        while( Time.time - startTime < 0.4f)
+        // thuật toán tính xem sẽ ra đòn nào
+        float timeSinceLastAttack = Time.time - lastAttackTime;
+        // nếu thời gian từ khi kết thúc đòn đánh và đòn đánh tiếp theo trong tg quy định thì 
+        // sẽ gọi đòn tiếp theo trong combo
+        // nếu thời gian nghỉ giữa 2 đòn đánh quá lâu hoặc hết combo thì nó bắt đầu lại từ đầu
+        if (timeSinceLastAttack <= Data.AttackTimeCombo)
         {
-            Rb.velocity = new Vector2(0,Rb.velocity.y);
-            yield return null;
+            currentAttackIndex++;
+            if (currentAttackIndex >= AttackDatas.Length)
+            {
+                currentAttackIndex = 0;
+            }
         }
+        else
+        {
+            currentAttackIndex = 0;
+        }
+        currentAttackCollider = AttackDatas[currentAttackIndex].AttackCollider;
+        currentAttackAnimation = AttackDatas[currentAttackIndex].AttackParamTransition;
+        currentDamage = AttackDatas[currentAttackIndex].RatioDamage * Data.Damage;
+        animator.SetTrigger(currentAttackAnimation);
+    }
+    #endregion
+
+    #region các hàm được gọi trong animation events
+    void OnAttackingAnimation()
+    {
+        List<Collider2D> hits = new List<Collider2D>();
+        int hitsLength = Physics2D.OverlapCollider(currentAttackCollider, enemyContactFilter, hits);
+
+        if (hitsLength > 0 )
+        {
+            
+            foreach (Collider2D hit in hits)
+            {
+                if (hit.gameObject.CompareTag("Enemy"))
+                {
+                    hit.GetComponent<IDamageable>().TakeDame(currentDamage);
+                    
+                }
+            }
+        }
+    }
+    void OnEndAttackAnimation()
+    {
         IsAttacking = false;
+        lastAttackTime = Time.time;
+    }
+    void OnEndStunAnimation()
+    {
+        IsStun = false;
     }
     #endregion
 
@@ -445,32 +477,32 @@ public class Knight : MonoBehaviour
     #region Check
     bool CanJump()
     {
-        return LastOnGroundTime > 0 && !IsJumping;
+        return LastOnGroundTime > 0 && !IsJumping && !IsAttacking && !IsRolling && !IsStun;
     }
     bool CanJumpCut()
     {
-        return Rb.velocity.y > 0 && IsJumping;
+        return Rb.velocity.y > 0 && IsJumping && !IsStun;
     }
     bool CanWallJump()
     {
-        return LastOnWallTime > 0 && !IsWallJumping && LastOnGroundTime < 0 ;
+        return LastOnWallTime > 0 && !IsWallJumping && LastOnGroundTime < 0 && !IsStun;
     }
     bool CanWallJumCut()
     {
-        return Rb.velocity.y > 0 && IsWallJumping;
+        return Rb.velocity.y > 0 && IsWallJumping && !IsStun;
     }
     bool CanSlide()
     {
-        return LastOnGroundTime < 0 && LastOnWallTime > 0;
+        return LastOnGroundTime < 0 && LastOnWallTime > 0 && !IsStun;
     }
     bool CanRoll()
     {
-        return LastOnGroundTime > 0 && !IsRolling;
+        return LastOnGroundTime > 0 && !IsRolling && !IsAttacking && !IsStun;
     }
 
     bool CanAttack()
     {
-        return !IsAttacking && !IsSliding && !IsRolling;
+        return !IsAttacking && !IsSliding && !IsRolling && !IsStun;
     }
     bool CanTurnArround()
     {
@@ -490,13 +522,16 @@ public class Knight : MonoBehaviour
 
     public void TakeDame(float damage)
     {
+        IsStun = true;
+        IsAttacking = false;
+        animator.SetTrigger("Hit");
         CurrentHeath -= damage;
     }
+    
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.green;
         Gizmos.DrawCube(groundCheckPoint.position, groundCheckSize);
         Gizmos.DrawCube(wallCheckPoint.position, wallCheckSize);
     }
-
 }
