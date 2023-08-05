@@ -7,4 +7,5 @@ public class KnightAttackData : MonoBehaviour
     public Collider2D AttackCollider;
     public string AttackParamTransition;
     public float RatioDamage;
+    public float LossStamina;
 }

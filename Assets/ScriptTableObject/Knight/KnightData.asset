@@ -27,10 +27,12 @@ MonoBehaviour:
   RunDeccelerationAmount: 21.25
   RunAccelerationInAirBorne: 0.647
   RunDeccelerationInAirBorne: 0.647
+  RunExhaustedSpeed: 0.375
   DoConseverMomentum: 1
   JumpHeight: 3.5
   JumpTimeToApex: 0.3
   JumpForce: 23.333332
+  JumpLossStamina: 10
   JumpCutGravityMultiplier: 2
   JumpHangGraviyMultiplier: 0.5
   JumpHangTimeThreshold: 1
@@ -40,6 +42,7 @@ MonoBehaviour:
   WallJumpRunLerp: 0.5
   WallJumpTime: 0.154
   DoTurnOnWallJump: 0
+  WallJumpLossStamina: 10
   SlideSpeed: -6
   SlideAcceleration: 1
   RollTime: 0.5
@@ -50,9 +53,13 @@ MonoBehaviour:
   RollStartSpeed: 12
   RollMiddleSpeed: 15
   RollEndSpeed: 9
+  RollLossStamina: 10
   Damage: 20
   Heath: 100
+  Stamina: 50
   AttackTimeCombo: 0.2
+  RestoreStaminaBufferTime: 2
+  RestoreStaminaSpeed: 20
   CrouchRunLerp: 0.235
   CoyoteTime: 0.1
   JumpInputBufferTime: 0.103

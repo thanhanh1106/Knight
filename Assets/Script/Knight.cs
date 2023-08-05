@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using DG.Tweening;
 
 public class Knight : MonoBehaviour,IDamageable
 {
@@ -21,12 +22,15 @@ public class Knight : MonoBehaviour,IDamageable
     [HideInInspector] public bool IsAttacking { get;private set; }
     [HideInInspector] public bool IsCrouching { get; private set; }
     [HideInInspector] public bool IsStun { get;private set; }
+    [HideInInspector] public bool IsStillStamina => currentStamina > 0;
+    [HideInInspector] public bool IsExhausted => currentStamina / Data.Stamina < 0.3f; // nhỏ hơn 30% stamina sẽ bị kiệt sức
     #endregion
 
     #region Time param
     public float WallHangingTime { get; private set; }
     public float LastOnGroundTime { get; private set; }
     public float LastOnWallTime { get; private set; }
+    public float LastDoSomethingTime { get; private set; }
     #endregion
 
     bool isJumpCut;
@@ -46,11 +50,13 @@ public class Knight : MonoBehaviour,IDamageable
     #region Attack Param
     [SerializeField] KnightAttackData[] AttackDatas;
     float CurrentHeath;
+    float currentStamina;
     int currentAttackIndex;
     Collider2D currentAttackCollider;
     float lastAttackTime;
     float currentDamage;
     string currentAttackAnimation;
+    float currentAttackLossStamina;
     #endregion
 
     #region Check parameter
@@ -83,6 +89,9 @@ public class Knight : MonoBehaviour,IDamageable
         SetGravityScale(Data.GravityScale);
         IsFacingRight = true;
         CurrentHeath = Data.Heath;
+        currentStamina = Data.Stamina;
+        UIManager.Instance.HeathBarUI(CurrentHeath,Data.Heath);
+        UIManager.Instance.StaminaBarUI(currentStamina,Data.Stamina);
         lastAttackTime = Time.time;
     }
     private void Update()
@@ -94,6 +103,7 @@ public class Knight : MonoBehaviour,IDamageable
         LastPressedJumpTime -= Time.deltaTime;
         LastPressedRollTime -= Time.deltaTime;
         LastPressedAttackTime -= Time.deltaTime;
+        LastDoSomethingTime -= Time.deltaTime;
         #endregion
 
         #region input Handler
@@ -161,6 +171,7 @@ public class Knight : MonoBehaviour,IDamageable
             IsIdle = false;
             IsRuning = false;
             IsCrouching = false;
+            UseStamina(Data.JumpLossStamina);
             Jump();
         }
         else if (CanWallJump() && LastPressedJumpTime > 0)
@@ -171,6 +182,7 @@ public class Knight : MonoBehaviour,IDamageable
             isJumpFalling = false;
 
             wallJumpStartTime = Time.time;
+            UseStamina(Data.WallJumpLossStamina);
             WallJump();
         }
         #endregion
@@ -188,6 +200,7 @@ public class Knight : MonoBehaviour,IDamageable
             isJumpCut = false;
             IsWallJumping = false;
             animator.SetTrigger("Roll");
+            UseStamina(Data.RollLossStamina);
             StartCoroutine(Roll(direction));
         }
         #endregion
@@ -201,6 +214,22 @@ public class Knight : MonoBehaviour,IDamageable
         if (IsAttacking)
         {
             Rb.velocity = Vector2.zero;
+        }
+        if(Time.time - lastAttackTime > Data.AttackTimeCombo)
+        {
+            currentAttackLossStamina = AttackDatas[0].LossStamina;
+        }
+        #endregion
+
+        #region Stamina
+        if(LastDoSomethingTime <= 0)
+        {
+            if(currentStamina < Data.Stamina)
+            {
+                currentStamina += Data.RestoreStaminaSpeed * Time.deltaTime;
+                currentStamina = Mathf.Clamp(currentStamina, 0, Data.Stamina);
+                UIManager.Instance.StaminaBarUI(currentStamina,Data.Stamina);
+            }
         }
         #endregion
 
@@ -279,15 +308,16 @@ public class Knight : MonoBehaviour,IDamageable
     }
     private void FixedUpdate()
     {
-        if (!IsRolling && !IsAttacking && !IsStun)
+        if (!IsRolling && !IsAttacking && !IsStun && !IsDie)
         {
-            Debug.Log("runing");
             if (IsWallJumping)
-                Run(Data.WallJumpRunLerp,1);
+                Run(Data.WallJumpRunLerp, 1);
             else if (IsCrouching)
-                Run(1,Data.CrouchRunLerp);
+                Run(1, Data.CrouchRunLerp);
+            //else if (IsExhausted)
+            //    Run(1, Data.RunExhaustedSpeed);
             else
-                Run(1,1);
+                Run(1, Mathf.Clamp(currentStamina/Data.Stamina,0.4f,1f));
         }
         if (wallJump)
         {
@@ -415,6 +445,8 @@ public class Knight : MonoBehaviour,IDamageable
         currentAttackCollider = AttackDatas[currentAttackIndex].AttackCollider;
         currentAttackAnimation = AttackDatas[currentAttackIndex].AttackParamTransition;
         currentDamage = AttackDatas[currentAttackIndex].RatioDamage * Data.Damage;
+        currentAttackLossStamina = AttackDatas[currentAttackIndex].LossStamina;
+        UseStamina(currentAttackLossStamina);
         animator.SetTrigger(currentAttackAnimation);
     }
     #endregion
@@ -477,36 +509,36 @@ public class Knight : MonoBehaviour,IDamageable
     #region Check
     bool CanJump()
     {
-        return LastOnGroundTime > 0 && !IsJumping && !IsAttacking && !IsRolling && !IsStun;
+        return LastOnGroundTime > 0 && !IsJumping && !IsAttacking && !IsRolling && !IsStun && !IsDie && EnoughStamina(Data.JumpLossStamina);
     }
     bool CanJumpCut()
     {
-        return Rb.velocity.y > 0 && IsJumping && !IsStun;
+        return Rb.velocity.y > 0 && IsJumping && !IsStun && !IsDie;
     }
     bool CanWallJump()
     {
-        return LastOnWallTime > 0 && !IsWallJumping && LastOnGroundTime < 0 && !IsStun;
+        return LastOnWallTime > 0 && !IsWallJumping && LastOnGroundTime < 0 && !IsStun && !IsDie && EnoughStamina(Data.WallJumpLossStamina);
     }
     bool CanWallJumCut()
     {
-        return Rb.velocity.y > 0 && IsWallJumping && !IsStun;
+        return Rb.velocity.y > 0 && IsWallJumping && !IsStun && !IsDie;
     }
     bool CanSlide()
     {
-        return LastOnGroundTime < 0 && LastOnWallTime > 0 && !IsStun;
+        return LastOnGroundTime < 0 && LastOnWallTime > 0 && !IsStun && !IsDie;
     }
     bool CanRoll()
     {
-        return LastOnGroundTime > 0 && !IsRolling && !IsAttacking && !IsStun;
+        return LastOnGroundTime > 0 && !IsRolling && !IsAttacking && !IsStun && !IsDie && EnoughStamina(Data.RollLossStamina);
     }
 
     bool CanAttack()
     {
-        return !IsAttacking && !IsSliding && !IsRolling && !IsStun;
+        return !IsAttacking && !IsSliding && !IsRolling && !IsStun && !IsDie && EnoughStamina(currentAttackLossStamina);
     }
     bool CanTurnArround()
     {
-        return !IsAttacking;
+        return !IsAttacking && !IsStun && !IsDie;
     }
     #endregion
     void SetGravityScale(float Scale)
@@ -520,12 +552,26 @@ public class Knight : MonoBehaviour,IDamageable
         transform.eulerAngles = new Vector3(transform.eulerAngles.x, eulerAnglesY, transform.eulerAngles.z);
     }
 
+    bool EnoughStamina(float Amount)
+    {
+        return currentStamina > Amount;
+    }
+    void UseStamina(float Amount)
+    {
+        currentStamina -= Amount;
+        LastDoSomethingTime = Data.RestoreStaminaBufferTime;
+        UIManager.Instance.StaminaBarUI(currentStamina, Data.Stamina);
+    }
     public void TakeDame(float damage)
     {
         IsStun = true;
         IsAttacking = false;
-        animator.SetTrigger("Hit");
         CurrentHeath -= damage;
+        UIManager.Instance.HeathBarUI(CurrentHeath, Data.Heath);
+        if (!IsDie)
+            animator.SetTrigger("Hit");
+        else
+            animator.SetTrigger("Death");
     }
     
     private void OnDrawGizmos()

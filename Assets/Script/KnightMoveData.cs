@@ -28,6 +28,7 @@ public class KnightMoveData : ScriptableObject
     [Space(5)]
     [Range(0f, 1f)] public float RunAccelerationInAirBorne;
     [Range(0f, 1f)] public float RunDeccelerationInAirBorne;
+    [Range(0f, 1f)] public float RunExhaustedSpeed;
     [Space(5)]
     public bool DoConseverMomentum = true;
 
@@ -37,6 +38,7 @@ public class KnightMoveData : ScriptableObject
     public float JumpHeight;
     public float JumpTimeToApex;
     [HideInInspector] public float JumpForce;
+    public float JumpLossStamina;
 
     [Header("BothJump")]
     public float JumpCutGravityMultiplier;
@@ -54,6 +56,7 @@ public class KnightMoveData : ScriptableObject
     [Range(0f, 1f)] public float WallJumpRunLerp;
     [Range(0f, 1f)] public float WallJumpTime;
     public bool DoTurnOnWallJump;
+    public float WallJumpLossStamina;
 
     [Space(20)]
     [Header("Slide")]
@@ -70,12 +73,16 @@ public class KnightMoveData : ScriptableObject
     [HideInInspector] public float RollStartSpeed;
     [HideInInspector] public float RollMiddleSpeed;
     [HideInInspector] public float RollEndSpeed;
+    public float RollLossStamina;
 
     [Space(20)]
     [Header("Attack")]
     public float Damage;
     public float Heath;
+    public float Stamina;
     public float AttackTimeCombo;
+    public float RestoreStaminaBufferTime;
+    public float RestoreStaminaSpeed;
 
     [Space(20)]
     [Header("Crouch")]
